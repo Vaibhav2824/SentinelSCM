@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SupplyChainOS - Reports</title>
+    <meta name="description" content="Analytics Reports - Performance and Strategic insights with Builder Pattern"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="main-content">
+    <div class="page-header">
+        <div class="flex-between">
+            <div><h1 class="page-title">Analytics Reports</h1><p class="page-subtitle">Performance metrics and strategic risk analysis (Builder Pattern)</p></div>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost" onclick="exportCSV()"><span class="material-symbols-outlined" style="font-size:17px">download</span> Export CSV</button>
+                <button class="btn btn-primary" onclick="loadAll()"><span class="material-symbols-outlined" style="font-size:17px">refresh</span> Refresh</button>
+            </div>
+        </div>
+    </div>
+    <div class="page-body">
+        <!-- Report tabs -->
+        <div style="display:flex;gap:6px;margin-bottom:1.5rem">
+            <button class="btn btn-primary" id="tabPerf" onclick="showTab('perf')">Performance Report</button>
+            <button class="btn btn-ghost" id="tabStrategic" onclick="showTab('strategic')">Strategic Report</button>
+        </div>
+
+        <!-- Performance Tab -->
+        <div id="tabPerfContent">
+            <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)" id="perfKpis">
+                <div class="kpi-card"><div class="kpi-label">Total Vendors</div><div class="kpi-value primary" id="rKpiTotal">—</div></div>
+                <div class="kpi-card"><div class="kpi-label">Active</div><div class="kpi-value success" id="rKpiActive">—</div></div>
+                <div class="kpi-card"><div class="kpi-label">High Risk</div><div class="kpi-value danger" id="rKpiHigh">—</div></div>
+                <div class="kpi-card"><div class="kpi-label">Avg Risk Score</div><div class="kpi-value" id="rKpiAvg">—</div></div>
+                <div class="kpi-card"><div class="kpi-label">Open Alerts</div><div class="kpi-value danger" id="rKpiAlerts">—</div></div>
+            </div>
+            <div class="grid-2 mb-6">
+                <div class="card">
+                    <div class="card-title">Vendor Risk Scores</div>
+                    <canvas id="perfBarChart" height="280"></canvas>
+                </div>
+                <div class="card">
+                    <div class="card-title">Vendor Ratings</div>
+                    <canvas id="ratingChart" height="280"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Detailed Performance Table</div>
+                <div class="table-wrap"><table>
+                    <thead><tr><th>Vendor</th><th>Status</th><th>Rating</th><th>Risk Score</th><th>Risk Level</th><th>Delivery</th><th>Defect Rate</th><th>Compliance</th></tr></thead>
+                    <tbody id="perfTableBody"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody>
+                </table></div>
+            </div>
+        </div>
+
+        <!-- Strategic Tab -->
+        <div id="tabStrategicContent" style="display:none">
+            <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)" id="stratKpis">
+                <div class="kpi-card"><div class="kpi-label">Low Risk Vendors</div><div class="kpi-value success" id="sKpiLow">—</div></div>
+                <div class="kpi-card"><div class="kpi-label">Medium Risk</div><div class="kpi-value" id="sKpiMed">—</div></div>
+                <div class="kpi-card"><div class="kpi-label">High Risk</div><div class="kpi-value danger" id="sKpiHigh">—</div></div>
+            </div>
+            <div class="grid-2 mb-6">
+                <div class="card">
+                    <div class="card-title">Risk Posture Distribution</div>
+                    <canvas id="stratPieChart" height="250"></canvas>
+                </div>
+                <div class="card">
+                    <div class="card-title">Top 5 Critical Vendors</div>
+                    <div id="top5List"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+initPage('reports');
+let perfData = null, stratData = null, perfChartInst, ratingChartInst, stratChartInst;
+const user = getCurrentUser();
+
+function showTab(tab) {
+    document.getElementById('tabPerfContent').style.display      = tab === 'perf' ? 'block' : 'none';
+    document.getElementById('tabStrategicContent').style.display = tab === 'strategic' ? 'block' : 'none';
+    document.getElementById('tabPerf').className      = `btn ${tab === 'perf' ? 'btn-primary' : 'btn-ghost'}`;
+    document.getElementById('tabStrategic').className = `btn ${tab === 'strategic' ? 'btn-primary' : 'btn-ghost'}`;
+    if (tab === 'strategic' && !stratData) loadStrategic();
+}
+
+async function loadAll() {
+    await loadPerformance();
+    if (user?.role === 'ADMIN') loadStrategic();
+}
+
+async function loadPerformance() {
+    perfData = await API.getPerformanceReport();
+    if (!perfData) return;
+    const s = perfData.statistics || {};
+    document.getElementById('rKpiTotal').textContent  = s.totalVendors  || 0;
+    document.getElementById('rKpiActive').textContent = s.activeVendors || 0;
+    document.getElementById('rKpiHigh').textContent   = s.highRiskVendors || 0;
+    document.getElementById('rKpiAvg').textContent    = s.avgRiskScore || 0;
+    document.getElementById('rKpiAlerts').textContent = s.unresolvedAlerts || 0;
+
+    const vendors = perfData.vendors || [];
+    const names   = vendors.map(v => v.name.length > 12 ? v.name.substring(0,11)+'…' : v.name);
+    const risks   = vendors.map(v => parseFloat(v.riskScore));
+    const ratings = vendors.map(v => parseFloat(v.rating));
+
+    if (perfChartInst) perfChartInst.destroy();
+    perfChartInst = new Chart(document.getElementById('perfBarChart'), {
+        type: 'bar',
+        data: { labels: names, datasets: [{ label: 'Risk Score', data: risks, backgroundColor: risks.map(r => r > 0.7 ? 'rgba(244,63,94,0.7)' : r > 0.4 ? 'rgba(245,158,11,0.7)' : 'rgba(16,185,129,0.7)'), borderRadius: 5 }] },
+        options: { responsive: true, indexAxis: 'y', scales: { x: { min: 0, max: 1, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748B' } }, y: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 10 } } } }, plugins: { legend: { display: false } } }
+    });
+
+    if (ratingChartInst) ratingChartInst.destroy();
+    ratingChartInst = new Chart(document.getElementById('ratingChart'), {
+        type: 'bar',
+        data: { labels: names, datasets: [{ label: 'Rating', data: ratings, backgroundColor: 'rgba(6,182,212,0.6)', borderRadius: 5 }] },
+        options: { responsive: true, indexAxis: 'y', scales: { x: { min: 0, max: 5, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748B' } }, y: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 10 } } } }, plugins: { legend: { display: false } } }
+    });
+
+    document.getElementById('perfTableBody').innerHTML = vendors.map(v => {
+        const d  = v.deliveryTimeliness != null ? (v.deliveryTimeliness * 100).toFixed(1) + '%' : '—';
+        const dr = v.defectRate != null ? (v.defectRate * 100).toFixed(1) + '%' : '—';
+        const c  = v.complianceScore != null ? (v.complianceScore * 100).toFixed(1) + '%' : '—';
+        return `<tr>
+            <td style="font-weight:600">${v.name}</td>
+            <td>${statusBadge(v.status)}</td>
+            <td style="color:#F59E0B">${'★'.repeat(Math.round(v.rating))}${'☆'.repeat(5-Math.round(v.rating))}</td>
+            <td style="font-family:monospace;font-weight:600">${v.riskScore}</td>
+            <td>${riskBadge(v.riskScore)}</td>
+            <td style="color:var(--success)">${d}</td>
+            <td style="color:${parseFloat(v.defectRate||0)>0.2?'var(--error)':'var(--warning)'}">${dr}</td>
+            <td style="color:var(--primary)">${c}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadStrategic() {
+    if (user?.role !== 'ADMIN') {
+        document.getElementById('stratKpis').innerHTML = '<div style="color:var(--text-muted);padding:1rem">Strategic report is restricted to Administrators.</div>'; return;
+    }
+    stratData = await API.getStrategicReport();
+    if (!stratData) return;
+    const s = stratData.statistics || {};
+    document.getElementById('sKpiLow').textContent  = s.lowRiskCount  || 0;
+    document.getElementById('sKpiMed').textContent  = s.mediumRiskCount|| 0;
+    document.getElementById('sKpiHigh').textContent = s.highRiskCount  || 0;
+
+    if (stratChartInst) stratChartInst.destroy();
+    stratChartInst = new Chart(document.getElementById('stratPieChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+            datasets: [{ data: [s.lowRiskCount || 0, s.mediumRiskCount || 0, s.highRiskCount || 0], backgroundColor: ['#10B981','#F59E0B','#F43F5E'], borderWidth: 0 }]
+        },
+        options: { cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#94A3B8', padding: 15, font: { size: 11 } } } } }
+    });
+
+    const top5 = s.top5HighRisk || [];
+    document.getElementById('top5List').innerHTML = top5.length
+        ? top5.map((v, i) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+            <div style="width:24px;height:24px;border-radius:50%;background:rgba(244,63,94,0.15);color:var(--error);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">${i+1}</div>
+            <div style="flex:1"><div style="font-weight:600;font-size:0.85rem">${v.name}</div><div style="color:var(--text-muted);font-size:0.75rem">${v.status}</div></div>
+            <span style="font-family:monospace;font-weight:800;color:var(--error)">${parseFloat(v.riskScore).toFixed(3)}</span>
+        </div>`).join('')
+        : '<p class="text-muted text-center">No high-risk vendors detected.</p>';
+}
+
+function exportCSV() {
+    if (!perfData?.vendors?.length) { showToast('No data to export', 'error'); return; }
+    const rows = [['ID','Name','Status','Rating','Risk Score','Delivery','Defect Rate','Compliance']];
+    perfData.vendors.forEach(v => rows.push([v.vendorId, v.name, v.status, v.rating, v.riskScore, v.deliveryTimeliness||'N/A', v.defectRate||'N/A', v.complianceScore||'N/A']));
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `vendor_report_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    showToast('CSV exported');
+}
+
+loadAll();
+</script>
+</body>
+</html>

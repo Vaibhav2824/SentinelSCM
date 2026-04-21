@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SupplyChainOS - Risk Analysis</title>
+    <meta name="description" content="Vendor Risk Evaluation - Strategy Pattern risk calculation"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .slider-group { margin-bottom: 1.5rem; }
+        .slider-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .slider-label span:first-child { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+        .slider-val { font-size: 1rem; font-weight: 800; font-family: monospace; }
+        input[type=range] { width: 100%; height: 6px; -webkit-appearance: none; background: rgba(255,255,255,0.1); border-radius: 3px; outline: none; cursor: pointer; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; box-shadow: 0 0 8px var(--primary-glow); }
+        .score-display { text-align: center; padding: 2.5rem; }
+        .score-ring { width: 140px; height: 140px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2.2rem; font-weight: 800; font-family: monospace; border: 5px solid; transition: all 0.4s; }
+        .formula-box { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
+        .formula-box span { color: var(--primary); }
+        .calc-result { display: none; }
+        .calc-result.show { display: block; }
+    </style>
+</head>
+<body>
+<div id="main-content">
+    <div class="page-header">
+        <h1 class="page-title">Risk Analysis Engine</h1>
+        <p class="page-subtitle">Evaluate vendor performance using Weighted Risk Strategy (Pattern: Strategy)</p>
+    </div>
+    <div class="page-body">
+        <div class="grid-2" style="gap:1.5rem">
+            <!-- Left: Evaluation Form -->
+            <div style="display:flex;flex-direction:column;gap:1.25rem">
+                <div class="card">
+                    <div class="card-title">Select Vendor</div>
+                    <select id="vendorSelect" onchange="onVendorChange()" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;cursor:pointer">
+                        <option value="">— Choose a vendor —</option>
+                    </select>
+                </div>
+                <div class="card">
+                    <div class="card-title">Evaluation Criteria</div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span>Delivery Timeliness</span><span class="slider-val" id="deliveryVal" style="color:var(--success)">0.85</span></div>
+                        <input type="range" id="delivery" min="0" max="1" step="0.01" value="0.85" oninput="onSlider()"/>
+                        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">1.0 = perfect on-time delivery, 0.0 = all delayed</div>
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span>Defect Rate</span><span class="slider-val" id="defectVal" style="color:var(--warning)">0.08</span></div>
+                        <input type="range" id="defect" min="0" max="1" step="0.01" value="0.08" oninput="onSlider()"/>
+                        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">0.0 = zero defects (best), 1.0 = all defective</div>
+                    </div>
+                    <div class="slider-group" style="margin-bottom:0">
+                        <div class="slider-label"><span>Compliance Score</span><span class="slider-val" id="complianceVal" style="color:var(--primary)">0.90</span></div>
+                        <input type="range" id="compliance" min="0" max="1" step="0.01" value="0.90" oninput="onSlider()"/>
+                        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px">1.0 = fully compliant, 0.0 = non-compliant</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Formula Preview</div>
+                    <div class="formula-box">
+                        risk = (1 – <span id="fD">0.850</span>) × 0.4 + <span id="fDR">0.080</span> × 0.4 + (1 – <span id="fC">0.900</span>) × 0.2
+                        <br/><br/>= <span id="fResult" style="color:var(--warning);font-size:1rem">0.094</span>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:1rem">
+                        <button class="btn btn-ghost" style="flex:1" onclick="submitEvaluation()" id="evalBtn">Save Evaluation</button>
+                        <button class="btn btn-primary" style="flex:1" onclick="triggerCalculate()" id="calcBtn">
+                            <span class="material-symbols-outlined" style="font-size:17px">calculate</span> Recalculate Risk
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Results -->
+            <div style="display:flex;flex-direction:column;gap:1.25rem">
+                <div class="card">
+                    <div class="card-title">Risk Score</div>
+                    <div class="score-display">
+                        <div class="score-ring" id="scoreRing" style="border-color:var(--primary);color:var(--primary)">
+                            <span id="scoreDisplay">—</span>
+                        </div>
+                        <div id="riskLevelText" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem">SELECT A VENDOR</div>
+                        <div id="scoreThreshold" style="font-size:0.78rem;color:var(--text-muted)">Threshold: 0.700</div>
+                    </div>
+                </div>
+                <div class="card calc-result" id="calcResultCard">
+                    <div class="card-title">Calculation Result</div>
+                    <div id="calcResultBody"></div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Risk Trend</div>
+                    <canvas id="trendChart" height="180"></canvas>
+                    <p id="trendEmpty" class="text-muted text-center" style="padding:2rem;display:none">Select a vendor to view risk trend</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+initPage('risk');
+let trendChartInst = null;
+
+async function loadVendors() {
+    const vendors = await API.getVendors() || [];
+    const sel = document.getElementById('vendorSelect');
+    vendors.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.vendorId; opt.textContent = `${v.name} (Risk: ${v.riskScore.toFixed(3)})`;
+        sel.appendChild(opt);
+    });
+}
+
+async function onVendorChange() {
+    const id = document.getElementById('vendorSelect').value;
+    if (!id) return;
+    const data = await API.getVendorRisk(id);
+    if (!data) return;
+    const history = data.history || [];
+    const latest  = data.latest;
+    if (latest && latest.score !== undefined) updateScoreDisplay(latest.score);
+    if (history.length) renderTrendChart(history);
+}
+
+function onSlider() {
+    const d  = parseFloat(document.getElementById('delivery').value);
+    const dr = parseFloat(document.getElementById('defect').value);
+    const c  = parseFloat(document.getElementById('compliance').value);
+    document.getElementById('deliveryVal').textContent   = d.toFixed(2);
+    document.getElementById('defectVal').textContent     = dr.toFixed(2);
+    document.getElementById('complianceVal').textContent = c.toFixed(2);
+    document.getElementById('fD').textContent  = d.toFixed(3);
+    document.getElementById('fDR').textContent = dr.toFixed(3);
+    document.getElementById('fC').textContent  = c.toFixed(3);
+    const score = (1 - d) * 0.4 + dr * 0.4 + (1 - c) * 0.2;
+    const clamped = Math.min(1.0, Math.max(0.0, score));
+    document.getElementById('fResult').textContent = clamped.toFixed(3);
+    const resultEl = document.getElementById('fResult');
+    resultEl.style.color = clamped > 0.7 ? 'var(--error)' : clamped > 0.4 ? 'var(--warning)' : 'var(--success)';
+}
+onSlider();
+
+function updateScoreDisplay(score) {
+    const s = parseFloat(score);
+    const el = document.getElementById('scoreRing');
+    const color = s > 0.7 ? 'var(--error)' : s > 0.4 ? 'var(--warning)' : 'var(--success)';
+    const level = s > 0.7 ? 'HIGH RISK' : s > 0.4 ? 'MEDIUM RISK' : 'LOW RISK';
+    el.style.borderColor = el.style.color = color;
+    document.getElementById('scoreDisplay').textContent = s.toFixed(3);
+    document.getElementById('riskLevelText').textContent = level;
+    document.getElementById('riskLevelText').style.color = color;
+}
+
+async function submitEvaluation() {
+    const id = document.getElementById('vendorSelect').value;
+    if (!id) { showToast('Please select a vendor first', 'error'); return; }
+    const btn = document.getElementById('evalBtn'); btn.textContent = 'Saving...'; btn.disabled = true;
+    const res = await API.evaluateVendor(id, {
+        deliveryTimeliness: parseFloat(document.getElementById('delivery').value),
+        defectRate:         parseFloat(document.getElementById('defect').value),
+        complianceScore:    parseFloat(document.getElementById('compliance').value)
+    });
+    btn.textContent = 'Save Evaluation'; btn.disabled = false;
+    if (res && res.previewScore !== undefined) { showToast(`Evaluation saved. Preview score: ${res.previewScore}`); }
+    else { showToast(res?.error || 'Save failed', 'error'); }
+}
+
+async function triggerCalculate() {
+    const id = document.getElementById('vendorSelect').value;
+    if (!id) { showToast('Please select a vendor first', 'error'); return; }
+    const btn = document.getElementById('calcBtn'); btn.innerHTML = '⏳ Calculating...'; btn.disabled = true;
+    const res = await API.calculateRisk(id);
+    btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:17px">calculate</span> Recalculate Risk'; btn.disabled = false;
+    if (!res || res.error) { showToast(res?.error || 'Calculation failed', 'error'); return; }
+    updateScoreDisplay(res.score);
+    const card = document.getElementById('calcResultCard');
+    card.classList.add('show');
+    const alertTriggered = res.alertTriggered;
+    document.getElementById('calcResultBody').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:var(--text-muted);font-size:0.82rem">New Score</span>
+                <span style="font-weight:800;font-family:monospace;font-size:1.1rem;color:${res.score>0.7?'var(--error)':res.score>0.4?'var(--warning)':'var(--success)'}">${res.score}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:var(--text-muted);font-size:0.82rem">Threshold</span>
+                <span style="font-weight:600;font-family:monospace">${res.threshold}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="color:var(--text-muted);font-size:0.82rem">Alert Triggered</span>
+                <span class="badge ${alertTriggered ? 'badge-high' : 'badge-low'}">${alertTriggered ? '⚠ YES' : '✓ NO'}</span>
+            </div>
+            ${alertTriggered ? `<div style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);border-radius:8px;padding:10px;font-size:0.8rem;color:var(--error)">⚠ HIGH RISK ALERT GENERATED — Check the Alerts page for vendor recommendations.</div>` : ''}
+        </div>`;
+    showToast(`Risk calculated: ${res.score} — ${alertTriggered ? '⚠ Alert triggered!' : 'Within safe range'}`);
+    // Refresh trend
+    const data = await API.getVendorRisk(id);
+    if (data?.history?.length) renderTrendChart(data.history);
+}
+
+function renderTrendChart(history) {
+    const labels = history.map(h => (h.calculatedDate || '').split('T')[0]);
+    const values = history.map(h => h.score);
+    if (trendChartInst) trendChartInst.destroy();
+    document.getElementById('trendChart').style.display = 'block';
+    document.getElementById('trendEmpty').style.display = 'none';
+    trendChartInst = new Chart(document.getElementById('trendChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{ label: 'Risk Score', data: values, borderColor: '#06B6D4', backgroundColor: 'rgba(6,182,212,0.08)', fill: true, tension: 0.4, pointBackgroundColor: values.map(v => v > 0.7 ? '#F43F5E' : v > 0.4 ? '#F59E0B' : '#10B981'), pointRadius: 5 }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                y: { min: 0, max: 1, ticks: { color: '#64748B' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+            },
+            plugins: { legend: { display: false }, annotation: {} }
+        }
+    });
+}
+
+loadVendors();
+</script>
+</body>
+</html>

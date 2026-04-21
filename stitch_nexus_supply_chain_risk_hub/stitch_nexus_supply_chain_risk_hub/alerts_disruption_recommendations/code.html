@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Alerts &amp; Disruption Recommendations</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#690005",
+                        "surface-container-low": "#151b2b",
+                        "on-error-container": "#ffdad6",
+                        "surface-bright": "#33394a",
+                        "primary-container": "#06b6d4",
+                        "surface-tint": "#4cd7f6",
+                        "inverse-primary": "#00687a",
+                        "secondary-fixed": "#6ffbbe",
+                        "surface-container": "#191f2f",
+                        "tertiary-fixed": "#ffdadb",
+                        "on-background": "#dde2f8",
+                        "surface-variant": "#2f3445",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "on-tertiary-container": "#7d0023",
+                        "outline-variant": "#3d494c",
+                        "on-primary-container": "#00424f",
+                        "on-tertiary-fixed": "#40000d",
+                        "outline": "#869397",
+                        "primary-fixed": "#acedff",
+                        "primary": "#4cd7f6",
+                        "on-secondary-fixed-variant": "#005236",
+                        "background": "#0d1322",
+                        "surface-container-high": "#242a3a",
+                        "tertiary-fixed-dim": "#ffb2b7",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-secondary-container": "#00311f",
+                        "secondary": "#4edea3",
+                        "on-surface": "#dde2f8",
+                        "tertiary": "#ffb2b7",
+                        "surface": "#0d1322",
+                        "error-container": "#93000a",
+                        "on-secondary": "#003824",
+                        "inverse-surface": "#dde2f8",
+                        "on-primary-fixed": "#001f26",
+                        "tertiary-container": "#ff7f8b",
+                        "inverse-on-surface": "#2a3040",
+                        "surface-container-lowest": "#080e1d",
+                        "surface-container-highest": "#2f3445",
+                        "error": "#ffb4ab",
+                        "secondary-container": "#00a572",
+                        "on-secondary-fixed": "#002113",
+                        "surface-dim": "#0d1322",
+                        "on-surface-variant": "#bcc9cd",
+                        "on-tertiary-fixed-variant": "#92002a",
+                        "on-primary": "#003640",
+                        "on-tertiary": "#67001b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "1rem",
+                        "xl": "1.25rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .neon-glow-primary {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+        }
+        .neon-glow-secondary {
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+        }
+        .glass-panel {
+            background-color: rgba(13, 19, 34, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(61, 73, 76, 0.1);
+        }
+        .alert-glass {
+            background-color: rgba(147, 0, 10, 0.2);
+            backdrop-filter: blur(12px);
+        }
+        .pulse-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 border-r border-outline-variant/10 shadow-xl bg-surface-container-lowest z-50 py-4">
+<div class="px-6 mb-8 flex items-center justify-between">
+<span class="font-headline font-extrabold text-xl tracking-tight text-primary">SupplyChainOS</span>
+<div class="w-2 h-2 rounded-full bg-secondary pulse-indicator neon-glow-secondary" title="System Health: Optimal"></div>
+</div>
+<div class="px-4 mb-6">
+<div class="flex items-center gap-3 p-3 rounded-lg bg-surface-container-low border border-outline-variant/10">
+<img alt="Manager profile avatar" class="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20" data-alt="Professional headshot of a man with short hair and a subtle smile, dark background, cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAD0_arbbQ_GszNWlqiBgBbfmIu10hcrV3vd5SH8RMsCfK_f9JbIuCXLGqnRFFDCYXxFiLayNSyeuovcps6-6PYboLnFwljDuW1tN_GPIA1WcKexcRgUxv5D0sVIn7c0MWHMqO6b1wMfPsFDdMygD20i2TBHLNs8NK6CVfE7aHvn-Q3eAYGontv67zhBVs9Ldhu606VlK15O_6cdgIkNtjEqQfB7Aw3OGSD588PqAb1-Vk9fbgtYwOVQu5bEknjlJtDvO0m_hoduZ6"/>
+<div>
+<p class="text-sm font-semibold text-on-surface">Alex Rivers</p>
+<p class="text-xs text-on-surface-variant">System Health: Optimal</p>
+</div>
+</div>
+</div>
+<div class="px-4 mb-6">
+<button class="w-full py-2 px-4 rounded-lg bg-gradient-to-br from-primary to-primary-container text-on-primary font-semibold text-sm hover:neon-glow-primary transition-all duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">add</span>
+                New Shipment
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto px-2 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all duration-200 px-3 py-2 mx-2 rounded-lg text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all duration-200 px-3 py-2 mx-2 rounded-lg text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+                Inventory
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all duration-200 px-3 py-2 mx-2 rounded-lg text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">local_shipping</span>
+                Logistics
+            </a>
+<a class="flex items-center gap-3 bg-primary-container/20 text-primary rounded-lg px-3 py-2 mx-2 text-sm font-medium scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                Analytics
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all duration-200 px-3 py-2 mx-2 rounded-lg text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">handshake</span>
+                Partners
+            </a>
+</div>
+<div class="px-2 mt-auto pt-4 border-t border-outline-variant/10">
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all duration-200 px-3 py-2 mx-2 rounded-lg text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span>
+                Help
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all duration-200 px-3 py-2 mx-2 rounded-lg text-sm font-medium" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+                Logout
+            </a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-64 relative bg-surface-dim overflow-y-auto">
+<!-- TopAppBar (Mobile Only) -->
+<header class="md:hidden flex justify-between items-center px-6 h-16 w-full bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/10 shadow-sm sticky top-0 z-40">
+<span class="text-lg font-bold tracking-tight text-primary">SupplyChainOS</span>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">notifications</span>
+<img alt="User profile" class="w-8 h-8 rounded-full object-cover" data-alt="Professional headshot of a man with short hair and a subtle smile, dark background, cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAH1hjUAyPsVIogUKKQ9fYLQ6JzCDmtvs8ni7ZLSQyqu6FRQ-xNFhLtVnx2LZVPMNCmfxWSJIWjwNtmSJhSeN9a5irvACHrIBt4AwTZNlKccrphqgzxcmDNryv8MiuxwFJs4NPIUJApc8k_uy1wlYUkEq0o1f0GP3LcdHkREWhit0EwC2FvwrLYGNUkPw3HHscxmTWyXhvlFZAQ8adGFhlNR7cso6sjQ0zphJ9S23mnZFqkuFDEUvKCFW-QhDtNmst9fdvNl0lGptIO"/>
+</div>
+</header>
+<div class="p-6 md:p-8 lg:p-10 max-w-7xl mx-auto">
+<!-- Page Header -->
+<div class="mb-8">
+<h1 class="font-headline text-3xl font-bold text-on-surface mb-2 tracking-tight">Active Disruptions</h1>
+<p class="text-on-surface-variant text-sm max-w-2xl">Real-time intelligence on supply chain anomalies. Resolve critical alerts to maintain operational flow.</p>
+</div>
+<!-- Dashboard Layout Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+<!-- Left Column: Alert Feed -->
+<div class="lg:col-span-5 flex flex-col gap-4">
+<h2 class="font-label text-xs uppercase tracking-[0.15em] text-on-surface-variant mb-2">Alert Feed</h2>
+<!-- Alert Card: High (Active) -->
+<div class="bg-surface-container-high rounded-lg p-5 border border-error/30 relative overflow-hidden group cursor-pointer transition-colors duration-200">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-lg" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-error text-xs font-bold uppercase tracking-wider">Critical</span>
+</div>
+<span class="text-on-surface-variant text-xs">Just now</span>
+</div>
+<h3 class="font-headline font-semibold text-lg text-on-surface mb-1">Micro-Chip Logistics</h3>
+<p class="text-sm text-on-surface-variant mb-3 line-clamp-2">Severe weather disruption at Port of Shanghai delaying expected container ship by 72 hours. Immediate rerouting recommended.</p>
+<div class="flex items-center gap-4 text-xs text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+<span>Impact: 14k units</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>Delay: 72h</span>
+</div>
+</div>
+</div>
+<!-- Alert Card: Medium -->
+<div class="bg-surface-container rounded-lg p-5 border border-outline-variant/10 hover:bg-surface-container-high relative overflow-hidden group cursor-pointer transition-colors duration-200">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg" style="font-variation-settings: 'FILL' 1;">error</span>
+<span class="text-tertiary text-xs font-bold uppercase tracking-wider">Warning</span>
+</div>
+<span class="text-on-surface-variant text-xs">2h ago</span>
+</div>
+<h3 class="font-headline font-semibold text-lg text-on-surface mb-1">Raw Material Shortage</h3>
+<p class="text-sm text-on-surface-variant mb-3 line-clamp-2">Supplier 'LithiumCorp' reporting 15% reduction in output this quarter due to local grid instability.</p>
+<div class="flex items-center gap-4 text-xs text-on-surface-variant">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">factory</span>
+<span>Impact: Prod Line B</span>
+</div>
+</div>
+</div>
+<!-- Alert Card: Low -->
+<div class="bg-surface-container rounded-lg p-5 border border-outline-variant/10 hover:bg-surface-container-high relative overflow-hidden group cursor-pointer transition-colors duration-200">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">info</span>
+<span class="text-primary text-xs font-bold uppercase tracking-wider">Notice</span>
+</div>
+<span class="text-on-surface-variant text-xs">5h ago</span>
+</div>
+<h3 class="font-headline font-semibold text-lg text-on-surface mb-1">Carrier Rate Update</h3>
+<p class="text-sm text-on-surface-variant mb-3 line-clamp-2">GlobalFreight routes to EU increased by 2.4% effective next month. Contract review advised.</p>
+</div>
+</div>
+<!-- Right Column: Expanded View & AI Recommendations -->
+<div class="lg:col-span-7 flex flex-col gap-6">
+<!-- Expanded Alert Detail (Glassmorphic) -->
+<div class="alert-glass rounded-xl p-6 border border-error/20 shadow-2xl">
+<div class="flex justify-between items-start mb-6">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-error text-xl" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-error font-label text-sm font-bold uppercase tracking-[0.1em]">Critical Disruption</span>
+</div>
+<h2 class="font-headline text-2xl font-bold text-on-surface">Micro-Chip Logistics Delay</h2>
+</div>
+<span class="px-3 py-1 bg-error/20 text-error rounded-full text-xs font-semibold border border-error/30">ID: #MC-8924</span>
+</div>
+<p class="text-on-surface-variant text-sm leading-relaxed mb-6">
+                            Severe weather disruption (Typhoon Grade 3) at Port of Shanghai is delaying the expected container ship 'Oceanic Voyager' by an estimated 72 hours. This impacts the delivery of 14,000 logic controllers necessary for Production Facility Alpha. Without intervention, production lines will halt on Thursday.
+                        </p>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="bg-surface-container/50 p-3 rounded-lg border border-outline-variant/10">
+<span class="block text-on-surface-variant text-xs mb-1">Impacted SKUs</span>
+<span class="block text-on-surface font-semibold text-lg">14,000</span>
+</div>
+<div class="bg-surface-container/50 p-3 rounded-lg border border-outline-variant/10">
+<span class="block text-on-surface-variant text-xs mb-1">Estimated Delay</span>
+<span class="block text-on-surface font-semibold text-lg text-error">72 Hrs</span>
+</div>
+<div class="bg-surface-container/50 p-3 rounded-lg border border-outline-variant/10">
+<span class="block text-on-surface-variant text-xs mb-1">Financial Risk</span>
+<span class="block text-on-surface font-semibold text-lg">$1.2M</span>
+</div>
+<div class="bg-surface-container/50 p-3 rounded-lg border border-outline-variant/10">
+<span class="block text-on-surface-variant text-xs mb-1">Time to Halt</span>
+<span class="block text-on-surface font-semibold text-lg text-tertiary">48 Hrs</span>
+</div>
+</div>
+</div>
+<!-- AI Recommendations Panel -->
+<div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[120px] text-primary" style="font-variation-settings: 'FILL' 1;">memory</span>
+</div>
+<div class="flex items-center gap-3 mb-6 relative z-10">
+<div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<h3 class="font-label text-sm uppercase tracking-[0.15em] text-on-surface font-semibold">AI Mitigation Pathways</h3>
+</div>
+<div class="space-y-4 relative z-10">
+<!-- Rec 1: Top Match -->
+<div class="bg-surface-container p-4 rounded-lg border border-primary/30 hover:bg-surface-container-high transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h4 class="font-headline font-semibold text-on-surface text-lg">Silicon Alpha</h4>
+<span class="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-bold uppercase tracking-wider border border-primary/30">98% Match</span>
+</div>
+<p class="text-xs text-on-surface-variant">Domestic supplier. Can fulfill 100% of required volume via expedited air freight.</p>
+<div class="flex gap-4 mt-2 text-xs">
+<span class="text-on-surface-variant">Cost Index: <span class="text-primary font-mono ml-1">0.12</span></span>
+<span class="text-on-surface-variant">ETA: <span class="text-on-surface ml-1">36 Hrs</span></span>
+</div>
+</div>
+<div class="shrink-0">
+<button class="w-full md:w-auto px-4 py-2 bg-transparent border border-outline-variant/30 text-primary text-sm font-medium rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-all">Select</button>
+</div>
+</div>
+<!-- Rec 2 -->
+<div class="bg-surface-container p-4 rounded-lg border border-outline-variant/10 hover:bg-surface-container-high transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-1">
+<h4 class="font-headline font-semibold text-on-surface text-lg">Global Circuits</h4>
+<span class="px-2 py-0.5 bg-surface-variant text-on-surface-variant rounded text-[10px] font-bold uppercase tracking-wider border border-outline-variant/20">94% Match</span>
+</div>
+<p class="text-xs text-on-surface-variant">Regional distributor. Can fulfill 80% volume immediately, 20% backordered.</p>
+<div class="flex gap-4 mt-2 text-xs">
+<span class="text-on-surface-variant">Cost Index: <span class="text-tertiary font-mono ml-1">0.15</span></span>
+<span class="text-on-surface-variant">ETA: <span class="text-on-surface ml-1">24 Hrs</span></span>
+</div>
+</div>
+<div class="shrink-0">
+<button class="w-full md:w-auto px-4 py-2 bg-transparent border border-outline-variant/30 text-primary text-sm font-medium rounded-lg hover:border-primary/50 hover:bg-primary/5 transition-all">Select</button>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-8 pt-6 border-t border-outline-variant/10 flex justify-end relative z-10">
+<button class="px-8 py-3 bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-sm rounded-lg hover:neon-glow-primary transition-all duration-300 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                Execute Resolution
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface-container-lowest/90 backdrop-blur-md border-t border-outline-variant/10 z-50">
+<div class="flex justify-around items-center h-16">
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="text-[10px] font-medium mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-[10px] font-medium mt-1">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span class="text-[10px] font-medium mt-1">Inventory</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">more_horiz</span>
+<span class="text-[10px] font-medium mt-1">Menu</span>
+</a>
+</div>
+</nav>
+</body></html>

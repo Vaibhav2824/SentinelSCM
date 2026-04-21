@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SupplyChainOS - Vendors</title>
+    <meta name="description" content="Vendor Management Hub - Add, edit, monitor vendor performance"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,1&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<div id="main-content">
+    <div class="page-header">
+        <div class="flex-between">
+            <div><h1 class="page-title">Vendor Hub</h1><p class="page-subtitle">Manage vendor relationships and performance metrics</p></div>
+            <button class="btn btn-primary" id="addVendorBtn" onclick="openAddModal()">
+                <span class="material-symbols-outlined" style="font-size:18px">add</span> Add Vendor
+            </button>
+        </div>
+    </div>
+    <div class="page-body">
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)" id="vendorKpis">
+            <div class="kpi-card"><div class="kpi-label">Total Vendors</div><div class="kpi-value primary" id="vkpiTotal">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Active</div><div class="kpi-value success" id="vkpiActive">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">High Risk</div><div class="kpi-value danger" id="vkpiHigh">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Pending Review</div><div class="kpi-value" id="vkpiPending">—</div></div>
+        </div>
+        <div class="card">
+            <div class="flex-between mb-4">
+                <div class="card-title" style="margin:0">All Vendors</div>
+                <input id="searchInput" type="text" placeholder="Search vendors..." oninput="filterVendors()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text);font-size:0.82rem;font-family:inherit;outline:none;width:220px"/>
+            </div>
+            <div class="table-wrap"><table>
+                <thead><tr>
+                    <th>Vendor</th><th>Contact</th><th>Rating</th>
+                    <th>Risk Score</th><th>Risk Level</th><th>Status</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="vendorTableBody"><tr><td colspan="7" class="loading">Loading vendors...</td></tr></tbody>
+            </table></div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="vendorModal">
+    <div class="modal">
+        <div class="modal-title" id="modalTitle">Add Vendor</div>
+        <input type="hidden" id="vendorId"/>
+        <div class="form-field"><label>Vendor Name *</label><input type="text" id="vName" placeholder="e.g. QuickParts Ltd" required/></div>
+        <div class="form-field"><label>Contact / Email</label><input type="text" id="vContact" placeholder="contact@vendor.com"/></div>
+        <div class="grid-2">
+            <div class="form-field"><label>Rating (0-5)</label><input type="number" id="vRating" min="0" max="5" step="0.1" placeholder="4.5"/></div>
+            <div class="form-field"><label>Status</label>
+                <select id="vStatus">
+                    <option value="PENDING">Pending</option><option value="ACTIVE">Active</option>
+                    <option value="HIGH_RISK">High Risk</option><option value="SUSPENDED">Suspended</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveVendor()">Save Vendor</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+initPage('vendors');
+let allVendors = [];
+const user = getCurrentUser();
+const canEdit = user && ['ADMIN','PROCUREMENT_MANAGER'].includes(user.role);
+
+async function loadVendors() {
+    allVendors = await API.getVendors() || [];
+    document.getElementById('vkpiTotal').textContent   = allVendors.length;
+    document.getElementById('vkpiActive').textContent  = allVendors.filter(v => v.status === 'ACTIVE').length;
+    document.getElementById('vkpiHigh').textContent    = allVendors.filter(v => v.riskScore > 0.7 || v.status === 'HIGH_RISK').length;
+    document.getElementById('vkpiPending').textContent = allVendors.filter(v => v.status === 'PENDING').length;
+    renderTable(allVendors);
+    if (!canEdit) document.getElementById('addVendorBtn').style.display = 'none';
+}
+
+function filterVendors() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    renderTable(q ? allVendors.filter(v => v.name.toLowerCase().includes(q) || (v.contact||'').toLowerCase().includes(q)) : allVendors);
+}
+
+function renderTable(vendors) {
+    const tbody = document.getElementById('vendorTableBody');
+    if (!vendors.length) { tbody.innerHTML = '<tr><td colspan="7" class="loading">No vendors found.</td></tr>'; return; }
+    tbody.innerHTML = vendors.map(v => {
+        const s = parseFloat(v.riskScore || 0);
+        const riskColor = s > 0.7 ? 'var(--error)' : s > 0.4 ? 'var(--warning)' : 'var(--success)';
+        const stars = '★'.repeat(Math.round(v.rating || 0)) + '☆'.repeat(5 - Math.round(v.rating || 0));
+        return `<tr>
+            <td style="font-weight:600">${v.name}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem">${v.contact || '—'}</td>
+            <td style="color:#F59E0B;font-size:0.8rem" title="${v.rating}">${stars}</td>
+            <td style="font-weight:700;color:${riskColor};font-family:monospace">${s.toFixed(3)}</td>
+            <td>${riskBadge(s)}</td>
+            <td>${statusBadge(v.status)}</td>
+            <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                    ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openEditModal(${v.vendorId})">Edit</button>` : ''}
+                    ${canEdit && v.status === 'ACTIVE' ? `<button class="btn btn-ghost btn-sm" onclick="doAction('suspend',${v.vendorId})" style="color:var(--warning)">Suspend</button>` : ''}
+                    ${canEdit && v.status !== 'ACTIVE' ? `<button class="btn btn-ghost btn-sm" onclick="doAction('activate',${v.vendorId})" style="color:var(--success)">Activate</button>` : ''}
+                    ${user?.role === 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="doAction('blacklist',${v.vendorId})" style="color:var(--error)">Blacklist</button>` : ''}
+                    ${user?.role === 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="doAction('delete',${v.vendorId})" style="color:var(--error)">Delete</button>` : ''}
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function doAction(action, id) {
+    const confirmMap = { delete: 'Deactivate this vendor?', blacklist: 'Blacklist this vendor?', suspend: 'Suspend this vendor?' };
+    if (confirmMap[action] && !confirm(confirmMap[action])) return;
+    let res;
+    if (action === 'delete') res = await API.deleteVendor(id);
+    else if (action === 'suspend') res = await API.suspendVendor(id);
+    else if (action === 'activate') res = await API.activateVendor(id);
+    else if (action === 'blacklist') res = await API.blacklistVendor(id);
+    showToast(res?.success ? 'Action completed' : (res?.error || 'Action failed'), res?.success ? 'success' : 'error');
+    loadVendors();
+}
+
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'Add Vendor';
+    document.getElementById('vendorId').value = '';
+    ['vName','vContact','vRating'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('vStatus').value = 'PENDING';
+    document.getElementById('vendorModal').classList.add('open');
+}
+
+function openEditModal(id) {
+    const v = allVendors.find(x => x.vendorId === id);
+    if (!v) return;
+    document.getElementById('modalTitle').textContent = 'Edit Vendor';
+    document.getElementById('vendorId').value = id;
+    document.getElementById('vName').value    = v.name;
+    document.getElementById('vContact').value = v.contact || '';
+    document.getElementById('vRating').value  = v.rating;
+    document.getElementById('vStatus').value  = v.status;
+    document.getElementById('vendorModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('vendorModal').classList.remove('open'); }
+
+async function saveVendor() {
+    const id   = document.getElementById('vendorId').value;
+    const data = {
+        name: document.getElementById('vName').value.trim(),
+        contact: document.getElementById('vContact').value.trim(),
+        rating: parseFloat(document.getElementById('vRating').value) || 0,
+        status: document.getElementById('vStatus').value,
+        riskScore: 0
+    };
+    if (!data.name) { showToast('Vendor name is required', 'error'); return; }
+    const res = id ? await API.updateVendor(id, data) : await API.createVendor(data);
+    if (res && (res.success || res.vendorId)) {
+        showToast(id ? 'Vendor updated' : 'Vendor created successfully');
+        closeModal(); loadVendors();
+    } else { showToast(res?.error || 'Save failed', 'error'); }
+}
+
+loadVendors();
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SupplyChainOS - Alerts</title>
+    <meta name="description" content="Risk Alerts & Vendor Recommendations - Observer Pattern"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,1&display=swap" rel="stylesheet"/>
+    <style>
+        .filter-tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+        .filter-tab { padding: 7px 18px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-family: inherit; transition: all 0.15s; }
+        .filter-tab.active { background: var(--primary-dim); border-color: var(--primary); color: var(--primary); }
+        .alert-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; margin-bottom: 0.85rem; transition: all 0.2s; }
+        .alert-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .alert-card.resolved { opacity: 0.55; }
+        .alert-card.high { border-left: 3px solid var(--error); }
+        .alert-card.medium { border-left: 3px solid var(--warning); }
+        .alert-card.low { border-left: 3px solid var(--primary); }
+        .alert-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+        .alert-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .alert-icon.high { background: rgba(244,63,94,0.15); color: var(--error); }
+        .alert-icon.medium { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .alert-icon.low { background: rgba(6,182,212,0.1); color: var(--primary); }
+        .alert-vendor { font-weight: 700; font-size: 0.95rem; }
+        .alert-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+        .alert-message { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+        .alert-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .rec-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-top: 10px; }
+        .rec-title { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+        .rec-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .rec-item:last-child { border-bottom: none; }
+        .rec-num { width: 22px; height: 22px; border-radius: 50%; background: var(--primary-dim); color: var(--primary); font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+        .rec-text { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+    </style>
+</head>
+<body>
+<div id="main-content">
+    <div class="page-header">
+        <h1 class="page-title">Alert Management</h1>
+        <p class="page-subtitle">Real-time risk alerts with AI-powered vendor recommendations (Observer + Factory Pattern)</p>
+    </div>
+    <div class="page-body">
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)" id="alertKpis">
+            <div class="kpi-card"><div class="kpi-label">Total Alerts</div><div class="kpi-value primary" id="aKpiTotal">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Active Alerts</div><div class="kpi-value danger" id="aKpiActive">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">High Severity</div><div class="kpi-value danger" id="aKpiHigh">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Resolved</div><div class="kpi-value success" id="aKpiResolved">—</div></div>
+        </div>
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFilter('all',this)">All Alerts</button>
+            <button class="filter-tab" onclick="setFilter('active',this)">Active</button>
+            <button class="filter-tab" onclick="setFilter('high',this)">High Severity</button>
+            <button class="filter-tab" onclick="setFilter('resolved',this)">Resolved</button>
+        </div>
+        <div id="alertList"><div class="loading">Loading alerts...</div></div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+initPage('alerts');
+let allAlerts = [], allVendors = [], currentFilter = 'all';
+
+async function loadAlerts() {
+    [allAlerts, allVendors] = await Promise.all([API.getAlerts(), API.getVendors()]);
+    allAlerts = allAlerts || []; allVendors = allVendors || [];
+    updateKpis(); renderAlerts();
+}
+
+function updateKpis() {
+    const active = allAlerts.filter(a => !a.resolved);
+    document.getElementById('aKpiTotal').textContent   = allAlerts.length;
+    document.getElementById('aKpiActive').textContent  = active.length;
+    document.getElementById('aKpiHigh').textContent    = allAlerts.filter(a => a.severity === 'HIGH' && !a.resolved).length;
+    document.getElementById('aKpiResolved').textContent= allAlerts.filter(a => a.resolved).length;
+}
+
+function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderAlerts();
+}
+
+function renderAlerts() {
+    let filtered = allAlerts;
+    if (currentFilter === 'active')   filtered = allAlerts.filter(a => !a.resolved);
+    if (currentFilter === 'resolved') filtered = allAlerts.filter(a => a.resolved);
+    if (currentFilter === 'high')     filtered = allAlerts.filter(a => a.severity === 'HIGH' && !a.resolved);
+
+    const container = document.getElementById('alertList');
+    if (!filtered.length) {
+        container.innerHTML = '<div class="loading">No alerts match this filter.</div>'; return;
+    }
+
+    container.innerHTML = filtered.map(a => {
+        const vendor = allVendors.find(v => v.vendorId === a.vendorId);
+        const level = (a.severity || 'low').toLowerCase();
+        const icon = level === 'high' ? 'error' : level === 'medium' ? 'warning' : 'info';
+        const time = a.timestamp ? new Date(a.timestamp).toLocaleString() : 'Unknown time';
+        return `<div class="alert-card ${level} ${a.resolved ? 'resolved' : ''}" id="alert-${a.alertId}">
+            <div class="alert-header">
+                <div class="alert-icon ${level}"><span class="material-symbols-outlined">${icon}</span></div>
+                <div style="flex:1">
+                    <div class="alert-vendor">${vendor ? vendor.name : `Vendor #${a.vendorId}`}</div>
+                    <div class="alert-time">${time}</div>
+                </div>
+                <span class="badge badge-${level}">${a.severity}</span>
+                ${a.resolved ? '<span class="badge badge-low">✓ Resolved</span>' : ''}
+            </div>
+            <p class="alert-message">${a.message}</p>
+            <div class="alert-actions">
+                ${!a.resolved ? `<button class="btn btn-ghost btn-sm" onclick="resolveAlert(${a.alertId})"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span> Resolve</button>` : ''}
+                <button class="btn btn-ghost btn-sm" onclick="toggleRec(${a.alertId})"><span class="material-symbols-outlined" style="font-size:15px">lightbulb</span> Recommendations</button>
+            </div>
+            <div id="rec-${a.alertId}" style="display:none"></div>
+        </div>`;
+    }).join('');
+}
+
+async function resolveAlert(id) {
+    const res = await API.resolveAlert(id);
+    if (res?.success) { showToast('Alert resolved'); loadAlerts(); }
+    else showToast(res?.error || 'Failed to resolve', 'error');
+}
+
+async function toggleRec(id) {
+    const panel = document.getElementById(`rec-${id}`);
+    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+    panel.innerHTML = '<div class="rec-panel"><p class="text-muted">Loading recommendations...</p></div>';
+    panel.style.display = 'block';
+    const recs = await API.getRecommendations(id) || [];
+    if (!recs.length) {
+        panel.innerHTML = '<div class="rec-panel"><p class="text-muted">No recommendations found for this alert.</p></div>'; return;
+    }
+    const items = recs.map((r, i) => {
+        const altVendor = allVendors.find(v => v.vendorId === r.suggestedVendorId);
+        return `<div class="rec-item">
+            <div class="rec-num">${i+1}</div>
+            <div class="rec-text">
+                ${altVendor ? `<strong style="color:var(--text)">${altVendor.name}</strong><br/>` : ''}
+                ${r.reason}
+            </div>
+        </div>`;
+    }).join('');
+    panel.innerHTML = `<div class="rec-panel"><div class="rec-title">🔍 Alternative Vendor Recommendations</div>${items}</div>`;
+}
+
+loadAlerts();
+</script>
+</body>
+</html>

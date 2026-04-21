@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SupplyChainOS - Inventory</title>
+    <meta name="description" content="Warehouse Inventory Management - Stock level monitoring"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,1&display=swap" rel="stylesheet"/>
+    <style>
+        .low-stock { color: var(--error); }
+        .stock-input { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-family: monospace; font-size: 0.88rem; width: 90px; outline: none; text-align: right; }
+        .stock-input:focus { border-color: var(--primary); }
+    </style>
+</head>
+<body>
+<div id="main-content">
+    <div class="page-header">
+        <h1 class="page-title">Warehouse Inventory</h1>
+        <p class="page-subtitle">Real-time stock monitoring and management for warehouse operations</p>
+    </div>
+    <div class="page-body">
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="kpi-card"><div class="kpi-label">Total Items</div><div class="kpi-value primary" id="iKpiTotal">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Low Stock (< 50)</div><div class="kpi-value danger" id="iKpiLow">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Adequate Stock</div><div class="kpi-value success" id="iKpiOk">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total Units</div><div class="kpi-value" id="iKpiTotal2">—</div></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Inventory Stock Levels</div>
+            <div class="table-wrap"><table>
+                <thead><tr>
+                    <th>#</th><th>Item Name</th><th>Stock Level</th><th>Status</th><th>Last Updated</th><th>Edit Stock</th>
+                </tr></thead>
+                <tbody id="inventoryBody"><tr><td colspan="6" class="loading">Loading inventory...</td></tr></tbody>
+            </table></div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+initPage('inventory');
+const user = getCurrentUser();
+const canEdit = user && ['ADMIN','WAREHOUSE_MANAGER'].includes(user.role);
+let inventory = [];
+
+async function loadInventory() {
+    inventory = await API.getInventory() || [];
+    const low = inventory.filter(i => i.quantity < 50);
+    document.getElementById('iKpiTotal').textContent  = inventory.length;
+    document.getElementById('iKpiLow').textContent    = low.length;
+    document.getElementById('iKpiOk').textContent     = inventory.length - low.length;
+    document.getElementById('iKpiTotal2').textContent = inventory.reduce((s, i) => s + i.quantity, 0).toLocaleString();
+    renderTable();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('inventoryBody');
+    if (!inventory.length) { tbody.innerHTML = '<tr><td colspan="6" class="loading">No inventory items found.</td></tr>'; return; }
+    tbody.innerHTML = inventory.map((item, idx) => {
+        const low = item.quantity < 50;
+        const pct = Math.min(100, Math.round(item.quantity / 50));
+        const barColor = low ? 'var(--error)' : item.quantity < 200 ? 'var(--warning)' : 'var(--success)';
+        const updated = item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '—';
+        return `<tr>
+            <td style="color:var(--text-muted);font-size:0.8rem">${item.itemId}</td>
+            <td style="font-weight:600">${item.itemName}</td>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span class="kpi-value" style="font-size:1rem;${low ? 'color:var(--error)' : ''}">${item.quantity.toLocaleString()}</span>
+                    <div style="width:80px;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+                        <div style="width:${Math.min(100,item.quantity)}%;max-width:100%;height:100%;background:${barColor};border-radius:3px"></div>
+                    </div>
+                </div>
+            </td>
+            <td>${low ? '<span class="badge badge-high">⚠ Low Stock</span>' : '<span class="badge badge-active">✓ OK</span>'}</td>
+            <td style="color:var(--text-muted);font-size:0.8rem">${updated}</td>
+            <td>${canEdit
+                ? `<div style="display:flex;align-items:center;gap:6px">
+                       <input type="number" class="stock-input" id="qty-${item.itemId}" value="${item.quantity}" min="0"/>
+                       <button class="btn btn-ghost btn-sm" onclick="updateStock(${item.itemId})">
+                           <span class="material-symbols-outlined" style="font-size:15px">save</span> Save
+                       </button>
+                   </div>`
+                : '<span class="text-muted" style="font-size:0.75rem">Read-only</span>'
+            }</td>
+        </tr>`;
+    }).join('');
+}
+
+async function updateStock(id) {
+    const qty = parseInt(document.getElementById(`qty-${id}`).value);
+    if (isNaN(qty) || qty < 0) { showToast('Invalid quantity', 'error'); return; }
+    const res = await API.updateStock(id, qty);
+    if (res?.success) { showToast('Stock updated successfully'); loadInventory(); }
+    else showToast(res?.error || 'Update failed', 'error');
+}
+
+loadInventory();
+</script>
+</body>
+</html>

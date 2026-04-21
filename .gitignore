@@ -1,0 +1,76 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Database and credentials
+*.db
+*.sqlite
+*.sqlite3
+db/*.sql
+!db/schema.sql
+!db/seed_data.sql
+.env
+.env.local
+config.properties
+database.properties
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node modules
+node_modules/
+
+# Dependencies
+.gradle/
+.m2/
+
+# Build artifacts
+dist/
+build/
+out/
+*.war
+*.ear
+*.zip
+
+# Misc
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+.cache
+.parcel-cache
+.next
+out
