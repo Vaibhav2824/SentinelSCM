@@ -9,25 +9,22 @@ import java.sql.Statement;
  * DatabaseManager - Singleton Pattern
  *
  * Design Pattern: Singleton
- * - Only one database connection pool instance throughout the application
- * lifetime
+ * - Only one database connection pool instance throughout the application lifetime
  * - Private constructor prevents external instantiation
  * - Static getInstance() provides global access point
  *
  * GRASP: Indirection - sits between Repository classes and raw JDBC
- * GRASP: Protected Variations - DB connection details hidden from
- * service/controller layers
- * Encapsulation: all connection details private, exposed only via
- * getConnection()
+ * GRASP: Protected Variations - DB connection details hidden from service/controller layers
+ * Encapsulation: all connection details private, exposed only via getConnection()
  */
 public class DatabaseManager {
 
     // === CONFIGURE THESE FOR YOUR MySQL INSTALLATION ===
-    private static final String DB_HOST = "localhost";
-    private static final String DB_PORT = "3306";
-    private static final String DB_NAME = "scm_db";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "22vaibhav";
+    private static final String DB_HOST     = "localhost";
+    private static final String DB_PORT     = "3306";
+    private static final String DB_NAME     = "scm_db";
+    private static final String DB_USER     = "root";
+    private static final String DB_PASSWORD = "your_mysql_password";   // ← Update this
     // ====================================================
 
     private static final String DB_URL = "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
