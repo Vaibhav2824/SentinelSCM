@@ -10,7 +10,7 @@ COPY src ./src
 RUN mvn -B -q package -DskipTests
 
 # ---------- Stage 2: runtime ----------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 LABEL org.opencontainers.image.source="https://github.com/Vaibhav2824/SentinelSCM" \
       org.opencontainers.image.description="SentinelSCM: supply chain vendor risk management" \
       org.opencontainers.image.licenses="MIT"
