@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout :: head('Risk Analysis')}"></head>
+<body>
+<nav th:replace="~{layout :: sidebar('risk')}"></nav>
+<div id="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Risk Analysis</h1>
+            <p class="page-subtitle">
+                Strategy: <strong th:text="${config['strategy']}">weighted</strong> ·
+                Alert threshold: <strong th:text="${#numbers.formatDecimal(config['threshold'], 1, 2)}">0.70</strong>
+            </p>
+        </div>
+        <form method="get" th:action="@{/risk}" class="inline-form">
+            <label class="text-muted" for="vendorId">Vendor</label>
+            <select id="vendorId" name="vendorId" onchange="this.form.submit()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+                <option th:each="v : ${vendors}" th:value="${v.id}" th:text="${v.name} + ' (' + ${v.status} + ')'"
+                        th:selected="${selected != null and v.id == selected.id}">Vendor</option>
+            </select>
+        </form>
+    </div>
+    <div class="page-body">
+        <div th:replace="~{layout :: flash}"></div>
+        <div th:if="${selected == null}" class="empty">No vendors to evaluate.</div>
+
+        <div th:if="${selected != null}" class="grid-2 mb-6">
+            <div class="card">
+                <div class="card-title">Evaluate <span th:text="${selected.name}">vendor</span></div>
+                <form th:action="@{/risk/{id}/evaluate(id=${selected.id})}" method="post">
+                    <div class="form-field">
+                        <label for="deliveryTimeliness">Delivery timeliness (1 = always on time)</label>
+                        <div class="range-row">
+                            <input id="deliveryTimeliness" name="deliveryTimeliness" type="range" min="0" max="1" step="0.01"
+                                   th:value="${latest != null} ? ${latest.deliveryTimeliness} : 0.9"/>
+                            <output id="deliveryTimelinessOut">0.90</output>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="defectRate">Defect rate (0 = no defects)</label>
+                        <div class="range-row">
+                            <input id="defectRate" name="defectRate" type="range" min="0" max="1" step="0.01"
+                                   th:value="${latest != null} ? ${latest.defectRate} : 0.05"/>
+                            <output id="defectRateOut">0.05</output>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label for="complianceScore">Compliance score (1 = fully compliant)</label>
+                        <div class="range-row">
+                            <input id="complianceScore" name="complianceScore" type="range" min="0" max="1" step="0.01"
+                                   th:value="${latest != null} ? ${latest.complianceScore} : 0.95"/>
+                            <output id="complianceScoreOut">0.95</output>
+                        </div>
+                    </div>
+                    <p class="text-muted" style="font-size:.75rem">Formula: (1 − timeliness) × 0.4 + defects × 0.4 + (1 − compliance) × 0.2</p>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-ghost">Save evaluation</button>
+                    </div>
+                </form>
+                <form th:action="@{/risk/{id}/calculate(id=${selected.id})}" method="post" sec:authorize="hasAnyRole('ADMIN','RISK_ANALYST')" style="margin-top:.5rem;text-align:right">
+                    <button type="submit" class="btn btn-primary">
+                        <span class="material-symbols-outlined" style="font-size:18px">calculate</span> Recalculate risk
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Current standing</div>
+                <div class="kpi-grid" style="margin-bottom:1rem">
+                    <div class="kpi-card"><div class="kpi-label">Risk score</div>
+                        <div class="kpi-value" th:classappend="${selected.riskScore > 0.7} ? 'danger' : 'primary'" th:text="${#numbers.formatDecimal(selected.riskScore, 1, 3)}">0.000</div></div>
+                    <div class="kpi-card"><div class="kpi-label">Status</div>
+                        <div style="margin-top:6px"><span th:replace="~{layout :: statusBadge(${selected.status.name()})}"></span></div></div>
+                </div>
+                <div th:if="${latest != null}" class="text-muted" style="font-size:.8rem">
+                    Latest evaluation <span th:text="${latest.evaluatedDate}">date</span>:
+                    timeliness <strong th:text="${latest.deliveryTimeliness}">x</strong>,
+                    defects <strong th:text="${latest.defectRate}">x</strong>,
+                    compliance <strong th:text="${latest.complianceScore}">x</strong>.
+                </div>
+                <div th:if="${latest == null}" class="text-muted" style="font-size:.8rem">No evaluation yet. Save one to enable recalculation.</div>
+
+                <div sec:authorize="hasRole('ADMIN')" style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem">
+                    <div class="card-title">Alert threshold (admin)</div>
+                    <form th:action="@{/risk/threshold}" method="post" class="inline-form">
+                        <input type="hidden" name="vendorId" th:value="${selected.id}"/>
+                        <input type="number" name="threshold" step="0.01" min="0.01" max="0.99" th:value="${config['threshold']}" required/>
+                        <button type="submit" class="btn btn-ghost btn-sm">Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${selected != null}" class="card" style="padding:0">
+            <div class="card-title" style="padding:1.25rem 1.5rem 0">Score history</div>
+            <div class="table-wrap" style="border:none">
+                <table>
+                    <thead><tr><th>Calculated</th><th class="num">Score</th><th>Level</th></tr></thead>
+                    <tbody>
+                    <tr th:each="h : ${history}">
+                        <td th:text="${#temporals.format(h.calculatedDate, 'dd MMM yyyy HH:mm')}">date</td>
+                        <td class="num mono" th:text="${#numbers.formatDecimal(h.score, 1, 3)}">0.000</td>
+                        <td><span th:replace="~{layout :: riskBadge(${h.score})}"></span></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(history)}"><td colspan="3" class="empty">No scores recorded yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script th:src="@{/js/app.js}"></script>
+<script>
+    bindRange('deliveryTimeliness', 'deliveryTimelinessOut');
+    bindRange('defectRate', 'defectRateOut');
+    bindRange('complianceScore', 'complianceScoreOut');
+</script>
+</body>
+</html>

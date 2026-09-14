@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout :: head('Inventory')}"></head>
+<body>
+<nav th:replace="~{layout :: sidebar('inventory')}"></nav>
+<div id="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Inventory</h1>
+            <p class="page-subtitle" th:text="${lowStock} + ' item(s) below the low-stock threshold of ' + ${threshold}">Inventory</p>
+        </div>
+    </div>
+    <div class="page-body">
+        <div th:replace="~{layout :: flash}"></div>
+        <div class="card" style="padding:0">
+            <div class="table-wrap" style="border:none">
+                <table>
+                    <thead><tr><th>#</th><th>Item</th><th class="num">Quantity</th><th>Stock</th><th>Last updated</th>
+                        <th sec:authorize="hasAnyRole('ADMIN','WAREHOUSE_MANAGER')">Update</th></tr></thead>
+                    <tbody>
+                    <tr th:each="i : ${items}" th:classappend="${i.lowStock} ? 'row-low-stock'">
+                        <td class="text-muted" th:text="${i.id}">1</td>
+                        <td style="font-weight:600" th:text="${i.itemName}">Item</td>
+                        <td class="num mono" th:text="${#numbers.formatInteger(i.quantity, 1, 'COMMA')}">0</td>
+                        <td><span class="badge" th:classappend="${i.lowStock} ? 'badge-high' : 'badge-low'" th:text="${i.lowStock} ? 'LOW' : 'OK'">OK</span></td>
+                        <td class="text-muted" th:text="${#temporals.format(i.lastUpdated, 'dd MMM yyyy HH:mm')}">date</td>
+                        <td sec:authorize="hasAnyRole('ADMIN','WAREHOUSE_MANAGER')">
+                            <form th:action="@{/inventory/{id}(id=${i.id})}" method="post" class="inline-form">
+                                <input type="number" name="quantity" min="0" th:value="${i.quantity}" required/>
+                                <button type="submit" class="btn btn-ghost btn-sm">Save</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

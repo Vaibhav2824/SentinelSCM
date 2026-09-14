@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Alerts')}"></head>
+<body>
+<nav th:replace="~{layout :: sidebar('alerts')}"></nav>
+<div id="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Alerts</h1>
+            <p class="page-subtitle" th:text="${unresolvedCount} + ' unresolved of ' + ${#lists.size(alerts)}">Alerts</p>
+        </div>
+    </div>
+    <div class="page-body">
+        <div th:replace="~{layout :: flash}"></div>
+        <div class="card" style="padding:0">
+            <div class="table-wrap" style="border:none">
+                <table>
+                    <thead><tr><th>Severity</th><th>Vendor</th><th>Message</th><th>Raised</th><th>State</th><th>Actions</th></tr></thead>
+                    <tbody>
+                    <tr th:each="a : ${alerts}" th:style="${a.resolved} ? 'opacity:.55'">
+                        <td><span class="badge" th:classappend="'badge-' + ${#strings.toLowerCase(a.severity)}" th:text="${a.severity}">HIGH</span></td>
+                        <td style="font-weight:600;white-space:nowrap" th:text="${a.vendorName}">Vendor</td>
+                        <td th:text="${a.message}">message</td>
+                        <td class="text-muted" style="white-space:nowrap" th:text="${#temporals.format(a.createdAt, 'dd MMM HH:mm')}">date</td>
+                        <td><span class="badge" th:classappend="${a.resolved} ? 'badge-inactive' : 'badge-pending'" th:text="${a.resolved} ? 'RESOLVED' : 'OPEN'">OPEN</span></td>
+                        <td>
+                            <div class="actions">
+                                <a th:href="@{/alerts/{id}(id=${a.alertId})}" class="btn btn-ghost btn-sm">Recommendations</a>
+                                <form th:if="${!a.resolved}" th:action="@{/alerts/{id}/resolve(id=${a.alertId})}" method="post">
+                                    <button type="submit" class="btn btn-success btn-sm">Resolve</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(alerts)}"><td colspan="6" class="empty">No alerts. System healthy.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

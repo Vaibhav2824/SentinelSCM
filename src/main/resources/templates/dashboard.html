@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Dashboard')}"></head>
+<body>
+<nav th:replace="~{layout :: sidebar('dashboard')}"></nav>
+<div id="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Executive Command</h1>
+            <p class="page-subtitle">Real-time overview of the vendor network and risk posture</p>
+        </div>
+    </div>
+    <div class="page-body">
+        <div class="kpi-grid">
+            <div class="kpi-card"><div class="kpi-label">Total Vendors</div><div class="kpi-value primary" th:text="${totalVendors}">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">Active</div><div class="kpi-value success" th:text="${activeVendors}">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">High Risk</div><div class="kpi-value danger" th:text="${highRiskVendors}">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">Avg Risk Score</div><div class="kpi-value primary" th:text="${#numbers.formatDecimal(avgRisk, 1, 3)}">0.000</div></div>
+            <div class="kpi-card"><div class="kpi-label">Active Alerts</div><div class="kpi-value danger" th:text="${canSeeAlerts} ? ${unresolvedAlerts} : '—'">0</div></div>
+            <div class="kpi-card"><div class="kpi-label">Low Stock Items</div><div class="kpi-value" th:text="${canSeeInventory} ? ${lowStock} : '—'">0</div></div>
+        </div>
+
+        <div class="grid-2 mb-6">
+            <div class="card">
+                <div class="card-title">Vendor Risk Distribution</div>
+                <canvas id="riskChart" height="200"></canvas>
+            </div>
+            <div class="card" style="display:flex;flex-direction:column;align-items:center">
+                <div class="card-title" style="align-self:flex-start">Vendor Status</div>
+                <canvas id="statusChart" width="200" height="200"></canvas>
+                <div class="donut-legend">
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>Active</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--primary)"></div>Pending</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--error)"></div>High Risk</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:var(--warning)"></div>Suspended</div>
+                    <div class="legend-item"><div class="legend-dot" style="background:#64748B"></div>Blacklisted</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title" style="display:flex;align-items:center;gap:6px">
+                    <span class="pulse-dot" style="background:var(--error)"></span> Live Alert Feed
+                </div>
+                <div th:if="${!canSeeAlerts}" class="empty">Alert data is not available for your role.</div>
+                <div th:if="${canSeeAlerts and #lists.isEmpty(alertFeed)}" class="empty">No active alerts. System healthy.</div>
+                <a th:each="a : ${alertFeed}" th:href="@{/alerts/{id}(id=${a.alertId})}" class="alert-feed-item">
+                    <div class="alert-dot" th:classappend="${#strings.toLowerCase(a.severity)}"></div>
+                    <div class="alert-text">
+                        <div class="alert-vendor" th:text="${a.vendorName}">Vendor</div>
+                        <div class="alert-msg" th:text="${a.message}">message</div>
+                    </div>
+                    <span style="font-size:.68rem;font-weight:700;flex-shrink:0"
+                          th:style="'color:' + (${a.severity == 'HIGH'} ? 'var(--error)' : (${a.severity == 'MEDIUM'} ? 'var(--warning)' : 'var(--primary)'))"
+                          th:text="${a.severity}">HIGH</span>
+                </a>
+            </div>
+            <div class="card">
+                <div class="card-title">Highest Risk Vendors</div>
+                <div th:each="v : ${topRisk}" class="risk-bar-row">
+                    <div class="risk-bar-label" th:title="${v.name}" th:text="${v.name}">Vendor</div>
+                    <div class="risk-bar-track">
+                        <div class="risk-bar-fill" th:style="'width:' + ${#numbers.formatDecimal(v.riskScore * 100, 1, 0)} + '%;background:' + (${v.riskScore > 0.7} ? '#F43F5E' : (${v.riskScore > 0.4} ? '#F59E0B' : '#10B981'))"></div>
+                    </div>
+                    <div class="risk-bar-val" th:style="'color:' + (${v.riskScore > 0.7} ? '#F43F5E' : (${v.riskScore > 0.4} ? '#F59E0B' : '#10B981'))"
+                         th:text="${#numbers.formatDecimal(v.riskScore, 1, 2)}">0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+<script th:inline="javascript">
+    const riskBins = /*[[${riskBins}]]*/ [0, 0, 0, 0, 0];
+    const statusCounts = /*[[${statusCounts}]]*/ {};
+
+    new Chart(document.getElementById('riskChart'), {
+        type: 'bar',
+        data: {
+            labels: ['0-0.2 Safe', '0.2-0.4 Low', '0.4-0.6 Med', '0.6-0.8 High', '0.8+ Critical'],
+            datasets: [{ data: riskBins, backgroundColor: ['#10B981', '#06B6D4', '#F59E0B', '#FB923C', '#F43F5E'], borderRadius: 6, borderSkipped: false }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: {
+            x: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: '#64748B', precision: 0 }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+        } }
+    });
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusCounts),
+            datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10B981', '#06B6D4', '#F43F5E', '#F59E0B', '#64748B'], borderWidth: 0, hoverOffset: 4 }]
+        },
+        options: { responsive: false, cutout: '70%', plugins: { legend: { display: false } } }
+    });
+</script>
+</body>
+</html>
