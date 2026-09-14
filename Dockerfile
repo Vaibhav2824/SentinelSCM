@@ -1,5 +1,5 @@
 # ---------- Stage 1: build ----------
-FROM maven:3.9.9-eclipse-temurin-21 AS build
+FROM maven:3.9.15-eclipse-temurin-26 AS build
 WORKDIR /workspace
 
 # Cache dependencies as their own layer; only invalidated when pom.xml changes.
