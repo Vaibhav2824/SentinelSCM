@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: sentinelscm
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/scm_db?createDatabaseIfNotExist=true&serverTimezone=UTC}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  thymeleaf:
+    cache: false
+
+server:
+  port: 8080
+  error:
+    whitelabel:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+sentinel:
+  risk:
+    # Strategy pattern: which RiskStrategy bean is active ("weighted" today)
+    strategy: ${SENTINEL_RISK_STRATEGY:weighted}
+  demo:
+    # Shows demo credentials on the login page. Off in production.
+    show-credentials: true
+
+logging:
+  level:
+    com.sentinelscm: INFO
