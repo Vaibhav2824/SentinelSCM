@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Error')}"></head>
+<body>
+<div class="error-wrap">
+    <div class="error-icon"><span class="material-symbols-outlined" th:text="${status == 403} ? 'lock' : (${status == 404} ? 'search_off' : 'error')">error</span></div>
+    <div>
+        <h2 style="font-size:1.5rem;font-weight:800;color:var(--error);margin-bottom:.5rem"
+            th:text="${status == 403} ? 'Access not granted' : (${status == 404} ? 'Page not found' : 'Something went wrong')">Error</h2>
+        <p class="text-muted" style="max-width:420px">
+            <span th:if="${status == 403}">Your role does not have permission to view this page. Contact your administrator to request access.</span>
+            <span th:if="${status == 404}">The page you asked for does not exist.</span>
+            <span th:if="${status != 403 and status != 404}" th:text="${message} ?: 'An unexpected error occurred.'">Unexpected error.</span>
+        </p>
+        <p class="text-muted" style="margin-top:.5rem;font-size:.75rem" th:text="'HTTP ' + ${status}">HTTP</p>
+    </div>
+    <a th:href="@{/dashboard}" class="btn btn-primary">
+        <span class="material-symbols-outlined" style="font-size:18px">home</span> Go to Dashboard
+    </a>
+</div>
+</body>
+</html>

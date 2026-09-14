@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout :: head('Vendors')}"></head>
+<body>
+<nav th:replace="~{layout :: sidebar('vendors')}"></nav>
+<div id="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Vendors</h1>
+            <p class="page-subtitle" th:text="${#lists.size(vendors)} + ' vendors in the network'">Vendors</p>
+        </div>
+        <a th:href="@{/vendors/new}" class="btn btn-primary" sec:authorize="hasAnyRole('ADMIN','PROCUREMENT_MANAGER')">
+            <span class="material-symbols-outlined" style="font-size:18px">add</span> New vendor
+        </a>
+    </div>
+    <div class="page-body">
+        <div th:replace="~{layout :: flash}"></div>
+        <div class="card" style="padding:0">
+            <div class="table-wrap" style="border:none">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>#</th><th>Vendor</th><th>Contact</th><th class="num">Rating</th>
+                        <th class="num">Risk</th><th>Level</th><th>Status</th>
+                        <th sec:authorize="hasAnyRole('ADMIN','PROCUREMENT_MANAGER')">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="v : ${vendors}">
+                        <td class="text-muted" th:text="${v.id}">1</td>
+                        <td style="font-weight:600" th:text="${v.name}">Name</td>
+                        <td class="text-muted" th:text="${v.contact}">contact</td>
+                        <td class="num" th:text="${#numbers.formatDecimal(v.rating, 1, 1)} + ' / 5'">4.5</td>
+                        <td class="num mono" th:text="${#numbers.formatDecimal(v.riskScore, 1, 3)}">0.120</td>
+                        <td><span th:replace="~{layout :: riskBadge(${v.riskScore})}"></span></td>
+                        <td><span th:replace="~{layout :: statusBadge(${v.status.name()})}"></span></td>
+                        <td sec:authorize="hasAnyRole('ADMIN','PROCUREMENT_MANAGER')">
+                            <div class="actions">
+                                <a th:href="@{/vendors/{id}/edit(id=${v.id})}" class="btn btn-ghost btn-sm">Edit</a>
+                                <form th:if="${v.status.name() != 'SUSPENDED' and v.status.name() != 'BLACKLISTED'}"
+                                      th:action="@{/vendors/{id}/suspend(id=${v.id})}" method="post">
+                                    <button class="btn btn-warning btn-sm" type="submit">Suspend</button>
+                                </form>
+                                <form th:if="${v.status.name() == 'SUSPENDED' or v.status.name() == 'BLACKLISTED'}"
+                                      th:action="@{/vendors/{id}/activate(id=${v.id})}" method="post">
+                                    <button class="btn btn-success btn-sm" type="submit">Activate</button>
+                                </form>
+                                <form sec:authorize="hasRole('ADMIN')" th:if="${v.status.name() != 'BLACKLISTED'}"
+                                      th:action="@{/vendors/{id}/blacklist(id=${v.id})}" method="post"
+                                      onsubmit="return confirm('Blacklist this vendor?')">
+                                    <button class="btn btn-danger btn-sm" type="submit">Blacklist</button>
+                                </form>
+                                <form sec:authorize="hasRole('ADMIN')" th:action="@{/vendors/{id}/delete(id=${v.id})}" method="post"
+                                      onsubmit="return confirm('Deactivate this vendor? It will disappear from lists.')">
+                                    <button class="btn btn-ghost btn-sm" type="submit" title="Soft delete">
+                                        <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(vendors)}"><td colspan="8" class="empty">No vendors yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

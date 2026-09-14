@@ -1,0 +1,11 @@
+target/
+.git/
+.github/
+SCM_Project/
+docs/
+*.md
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/

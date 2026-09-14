@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''"/>
+    <meta name="_csrf_header" th:content="${_csrf != null} ? ${_csrf.headerName} : 'X-CSRF-TOKEN'"/>
+    <title th:text="${title} + ' | SentinelSCM'">SentinelSCM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,1&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+
+<!--
+  Sidebar: navigation is derived from the authenticated user's role on the server
+  (Thymeleaf Spring Security dialect). Nothing about roles lives in browser JS.
+-->
+<nav id="sidebar" th:fragment="sidebar(active)">
+    <div class="sidebar-brand">
+        <div class="brand-logo"><span class="material-symbols-outlined">hub</span></div>
+        <div>
+            <div class="brand-name">SentinelSCM</div>
+            <div class="brand-status"><span class="pulse-dot"></span>Live</div>
+        </div>
+    </div>
+    <div class="sidebar-user" sec:authorize="isAuthenticated()">
+        <div class="user-avatar" th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">A</div>
+        <div>
+            <div class="user-name" th:text="${#authentication.principal.name}">User</div>
+            <div class="user-role" th:text="${#authentication.principal.role.label()}">Role</div>
+        </div>
+    </div>
+    <div class="nav-items">
+        <a th:href="@{/dashboard}" class="nav-item" th:classappend="${active == 'dashboard'} ? 'active'">
+            <span class="material-symbols-outlined">dashboard</span><span>Dashboard</span>
+        </a>
+        <a th:href="@{/vendors}" class="nav-item" th:classappend="${active == 'vendors'} ? 'active'">
+            <span class="material-symbols-outlined">corporate_fare</span><span>Vendors</span>
+        </a>
+        <a th:href="@{/risk}" class="nav-item" th:classappend="${active == 'risk'} ? 'active'"
+           sec:authorize="hasAnyRole('ADMIN','RISK_ANALYST','PROCUREMENT_MANAGER')">
+            <span class="material-symbols-outlined">analytics</span><span>Risk</span>
+        </a>
+        <span class="nav-item nav-item-locked" sec:authorize="!hasAnyRole('ADMIN','RISK_ANALYST','PROCUREMENT_MANAGER')" title="Not available for your role">
+            <span class="material-symbols-outlined">analytics</span><span>Risk</span><span class="material-symbols-outlined" style="font-size:14px;margin-left:auto;opacity:.5">lock</span>
+        </span>
+        <a th:href="@{/alerts}" class="nav-item" th:classappend="${active == 'alerts'} ? 'active'"
+           sec:authorize="hasAnyRole('ADMIN','PROCUREMENT_MANAGER','RISK_ANALYST')">
+            <span class="material-symbols-outlined">warning</span><span>Alerts</span>
+        </a>
+        <span class="nav-item nav-item-locked" sec:authorize="!hasAnyRole('ADMIN','PROCUREMENT_MANAGER','RISK_ANALYST')" title="Not available for your role">
+            <span class="material-symbols-outlined">warning</span><span>Alerts</span><span class="material-symbols-outlined" style="font-size:14px;margin-left:auto;opacity:.5">lock</span>
+        </span>
+        <a th:href="@{/inventory}" class="nav-item" th:classappend="${active == 'inventory'} ? 'active'"
+           sec:authorize="hasAnyRole('ADMIN','PROCUREMENT_MANAGER','WAREHOUSE_MANAGER')">
+            <span class="material-symbols-outlined">inventory_2</span><span>Inventory</span>
+        </a>
+        <span class="nav-item nav-item-locked" sec:authorize="!hasAnyRole('ADMIN','PROCUREMENT_MANAGER','WAREHOUSE_MANAGER')" title="Not available for your role">
+            <span class="material-symbols-outlined">inventory_2</span><span>Inventory</span><span class="material-symbols-outlined" style="font-size:14px;margin-left:auto;opacity:.5">lock</span>
+        </span>
+        <a th:href="@{/reports}" class="nav-item" th:classappend="${active == 'reports'} ? 'active'"
+           sec:authorize="hasAnyRole('ADMIN','PROCUREMENT_MANAGER','RISK_ANALYST')">
+            <span class="material-symbols-outlined">bar_chart</span><span>Reports</span>
+        </a>
+        <span class="nav-item nav-item-locked" sec:authorize="!hasAnyRole('ADMIN','PROCUREMENT_MANAGER','RISK_ANALYST')" title="Not available for your role">
+            <span class="material-symbols-outlined">bar_chart</span><span>Reports</span><span class="material-symbols-outlined" style="font-size:14px;margin-left:auto;opacity:.5">lock</span>
+        </span>
+    </div>
+    <div class="sidebar-footer">
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="nav-item logout-item">
+                <span class="material-symbols-outlined">logout</span><span>Sign Out</span>
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div th:fragment="flash" th:remove="tag">
+    <div class="flash success" th:if="${success}"><span class="material-symbols-outlined" style="color:var(--success);font-size:18px">check_circle</span><span th:text="${success}"></span></div>
+    <div class="flash error" th:if="${error}"><span class="material-symbols-outlined" style="color:var(--error);font-size:18px">error</span><span th:text="${error}"></span></div>
+    <div class="flash warning" th:if="${warning}"><span class="material-symbols-outlined" style="color:var(--warning);font-size:18px">warning</span><span th:text="${warning}"></span></div>
+</div>
+
+<span th:fragment="statusBadge(status)" class="badge"
+      th:classappend="'badge-' + ${#strings.toLowerCase(status)}"
+      th:text="${#strings.replace(status, '_', ' ')}">STATUS</span>
+
+<span th:fragment="riskBadge(score)" class="badge"
+      th:classappend="${score > 0.7} ? 'badge-high' : (${score > 0.4} ? 'badge-medium' : 'badge-low')"
+      th:text="${score > 0.7} ? 'HIGH' : (${score > 0.4} ? 'MEDIUM' : 'LOW')">LOW</span>
+
+</body>
+</html>

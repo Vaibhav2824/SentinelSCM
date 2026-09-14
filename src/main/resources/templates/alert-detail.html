@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Alert #' + ${alert.alertId})}"></head>
+<body>
+<nav th:replace="~{layout :: sidebar('alerts')}"></nav>
+<div id="main-content">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title" th:text="'Alert #' + ${alert.alertId}">Alert</h1>
+            <p class="page-subtitle" th:text="${alert.vendorName} + ' · ' + ${#temporals.format(alert.createdAt, 'dd MMM yyyy HH:mm')}">meta</p>
+        </div>
+        <a th:href="@{/alerts}" class="btn btn-ghost"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> All alerts</a>
+    </div>
+    <div class="page-body">
+        <div class="card mb-6">
+            <div class="flex-between mb-4">
+                <span class="badge" th:classappend="'badge-' + ${#strings.toLowerCase(alert.severity)}" th:text="${alert.severity}">HIGH</span>
+                <span class="badge" th:classappend="${alert.resolved} ? 'badge-inactive' : 'badge-pending'" th:text="${alert.resolved} ? 'RESOLVED' : 'OPEN'">OPEN</span>
+            </div>
+            <p th:text="${alert.message}">message</p>
+            <form th:if="${!alert.resolved}" th:action="@{/alerts/{id}/resolve(id=${alert.alertId})}" method="post" style="margin-top:1rem">
+                <button type="submit" class="btn btn-success btn-sm">Mark resolved</button>
+            </form>
+        </div>
+        <div class="card">
+            <div class="card-title">Recommended alternatives</div>
+            <div th:if="${#lists.isEmpty(recommendations)}" class="empty">No recommendations were generated for this alert.</div>
+            <div th:each="r, it : ${recommendations}" class="alert-feed-item">
+                <div class="user-avatar" style="width:28px;height:28px;font-size:.75rem" th:text="${it.count}">1</div>
+                <div class="alert-text">
+                    <div class="alert-vendor" th:text="${r.vendorName}">Vendor</div>
+                    <div class="text-muted" style="font-size:.8rem;white-space:normal" th:text="${r.reason}">reason</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  thymeleaf:
+    cache: true
+
+sentinel:
+  demo:
+    show-credentials: true
+
+logging:
+  level:
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

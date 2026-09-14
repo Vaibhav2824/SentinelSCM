@@ -74,3 +74,8 @@ Thumbs.db
 .parcel-cache
 .next
 out
+
+# Spring Boot / local
+.env
+target/
+.mvn/wrapper/maven-wrapper.jar

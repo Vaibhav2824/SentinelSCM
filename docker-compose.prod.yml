@@ -1,0 +1,9 @@
+# Run the published image instead of building from source:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  app:
+    build: !reset null
+    image: ghcr.io/vaibhav2824/sentinelscm:${SENTINELSCM_TAG:-latest}
+    pull_policy: always
+    environment:
+      SENTINEL_DEMO_SHOW_CREDENTIALS: ${SENTINEL_DEMO_SHOW_CREDENTIALS:-false}
