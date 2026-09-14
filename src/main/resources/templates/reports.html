@@ -23,7 +23,7 @@
         <div class="tab-panel" data-panel="performance">
             <div class="kpi-grid">
                 <div class="kpi-card" th:each="s : ${performance.statistics}">
-                    <div class="kpi-label" th:text="${s.key}">stat</div>
+                    <div class="kpi-label" th:text="${s.key.replaceAll('([a-z])([A-Z0-9])', '$1 $2')}">stat</div>
                     <div class="kpi-value primary" th:text="${s.value}">0</div>
                 </div>
             </div>
@@ -51,7 +51,7 @@
         <div class="tab-panel" data-panel="strategic" hidden th:if="${isAdmin}">
             <div class="kpi-grid">
                 <div class="kpi-card" th:each="s : ${strategic.statistics}" th:if="${s.key != 'top5HighRisk'}">
-                    <div class="kpi-label" th:text="${s.key}">stat</div>
+                    <div class="kpi-label" th:text="${s.key.replaceAll('([a-z])([A-Z0-9])', '$1 $2')}">stat</div>
                     <div class="kpi-value" th:classappend="${s.key == 'highRiskCount' or s.key == 'unresolvedAlerts'} ? 'danger' : 'primary'" th:text="${s.value}">0</div>
                 </div>
             </div>
